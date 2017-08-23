@@ -8,8 +8,6 @@ Configuration DcConfig
 	)
 
 	Import-DscResource -ModuleName xActiveDirectory
-    Import-DscResource -ModuleName xStorage 
-    Import-DscResource -ModuleName xComputerManagement 
 
 	Node $AllNodes.Where{$_.Role -eq "Primary DC"}.Nodename
 	{             
@@ -63,45 +61,13 @@ Configuration DcConfig
 			Name   = 'RSAT-Role-Tools'
 		}      
 
-		xWaitForDisk Wait_Data_Disk
-		{
-			DiskNumber = $Node.DataDiskNumber
-			RetryCount = $Node.RetryCount
-			RetryIntervalSec = $Node.RetryIntervalSec
-			DependsOn = '[WindowsFeature]RSAT_Role_Tools'
-		}
-
-		xDisk Data_Disk
-		{
-			DiskNumber = $Node.DataDiskNumber
-			DriveLetter = $Node.DataDriveLetter
-			AllocationUnitSize = 4096
-			DependsOn = '[xWaitforDisk]Wait_Data_Disk'
-		}
-
 		xADDomain CreateForest 
 		{ 
 			DomainName = $Node.DomainName            
 			DomainAdministratorCredential = $DomainAdminCredentials
 			SafemodeAdministratorPassword = $DomainAdminCredentials
-			#DnsDelegationCredential = $DomainAdminCredentials
 			DomainNetbiosName = $Node.DomainNetBiosName
-			DatabasePath = $Node.DataDriveLetter + ":\NTDS"
-			LogPath = $Node.DataDriveLetter + ":\NTDS"
-			SysvolPath = $Node.DataDriveLetter + ":\SYSVOL"
-			DependsOn = '[xDisk]Data_Disk', '[WindowsFeature]ADDS_Install'
+			DependsOn = '[WindowsFeature]ADDS_Install'
 		}
 	}
 }
-
-function Get-ModuleVersion
-{
-	param
-	(
-		[string]$moduleName
-	)
-
-	$modules = get-module -ListAvailable -Name $moduleName
-	return ($modules | select version -Unique | Sort -Descending)[0].Version.Tostring()
-
-} 
